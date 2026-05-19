@@ -7,7 +7,9 @@ const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 
-app.use(cors());
+const allowedOrigin = process.env.CLIENT_URL || "*";
+
+app.use(cors({ origin: allowedOrigin }));
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
@@ -16,7 +18,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: allowedOrigin,
     methods: ["GET", "POST"]
   }
 });
@@ -28,6 +30,10 @@ app.get("/", (req, res) => {
     message: "Hello from the backend!",
     history: messages
   });
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
 });
 
 io.on("connection", (socket) => {
