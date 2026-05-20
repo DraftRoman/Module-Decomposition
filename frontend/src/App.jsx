@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
@@ -17,6 +17,17 @@ function App() {
   const divRef = useRef(null);
 
   const activeConversationId = "ef9ea1e8-d3f0-4c59-9942-41f1fab3f50e"; 
+
+  // Fetch initial message logs from PostgreSQL database
+  const fetchMessages = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (!error && data) {
+      setMessages(data);
+    }
+  }, []);
 
   useEffect(() => {
     // 1. Get initial session status
@@ -53,20 +64,13 @@ function App() {
       subscription.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchMessages]);
 
   useEffect(() => {
     divRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const fetchMessages = async () => {
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .order("created_at", { ascending: true });
-    if (!error) setMessages(data);
-  };
-
+  // Insert a new message row into Supabase
   const handleSubmit = async () => {
     if (!inputValue.trim() || !session?.user) return;
 
@@ -74,26 +78,35 @@ function App() {
       {
         text: inputValue,
         conversation_id: activeConversationId,
-        sender_id: session.user.id, // Securely targets the authenticated individual
+        sender_id: session.user.id, // Maps authenticated identity directly
         status: "sent"
       }
     ]);
 
-    if (!error) setInputValue("");
+    if (!error) {
+      setInputValue("");
+    } else {
+      console.error("Error sending message:", error.message);
+    }
   };
 
+  // Update a message's like count
   const handleLikes = async (msg) => {
-    await supabase
+    const { error } = await supabase
       .from("messages")
       .update({ likes: msg.likes + 1 })
       .eq("id", msg.id);
+
+    if (error) {
+      console.error("Error updating likes:", error.message);
+    }
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
-  // IF NOT LOGGED IN: Show the beautiful Supabase pre-built Auth Form
+  // IF NOT LOGGED IN: Render the pre-built Supabase Auth UI Module
   if (!session) {
     return (
       <div className="auth-container">
@@ -114,7 +127,6 @@ function App() {
                 },
               },
             }}
-            // Add any provider you have enabled inside your Supabase backend dashboard
             providers={["github", "google"]} 
             redirectTo={window.location.origin}
           />
@@ -123,7 +135,7 @@ function App() {
     );
   }
 
-  // IF LOGGED IN: Show the messenger app
+  // IF LOGGED IN: Render the core messenger app interface
   return (
     <div className="chat-app">
       <header className="chat-header">
@@ -142,7 +154,7 @@ function App() {
           >
             <p>{msg.text}</p>
             <button className="like-button" onClick={() => handleLikes(msg)}>
-              ❤️ {msg.likes}
+              ❤️ {msg.likes || 0}
             </button>
           </div>
         ))}
