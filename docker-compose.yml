@@ -1,14 +1,21 @@
 services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      - PORT=3001
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:5173}
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
     ports:
       - "5173:80"
     depends_on:
       - backend
-
-  backend:
-    build:
-      context: ./backend
-    ports:
-      - "3001:3001"
+    restart: unless-stopped
