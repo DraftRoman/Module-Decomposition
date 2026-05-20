@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
 
@@ -7,6 +7,7 @@ const socket = io(import.meta.env.VITE_API_URL);
 function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
+  const divRef = useRef(null);
 
   useEffect(() => {
     socket.on("initial_messages", (data) => {
@@ -25,6 +26,10 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    divRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const handleSubmit = () => {
     if (!inputValue.trim()) return;
 
@@ -40,16 +45,6 @@ function App() {
     <div className="chat-app">
       <h1>Real Chat Application</h1>
 
-      <input
-        className="chat-input"
-        placeholder="Type a message..."
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleSubmit();
-        }}
-      />
-
       <div className="chat-area">
         {messages.map((msg) => (
           <div key={msg.id} className="message">
@@ -61,14 +56,24 @@ function App() {
               );
 
               console.log(`Liked message with id: ${msg.id}`);
-              console.log(`Current messages state:`, messages);
-
-            }}>
+            }}
+            >
               ❤️ {msg.likes}
             </button>
           </div>
         ))}
+        <div ref={divRef} />
       </div>
+      <input
+        className="chat-input"
+        placeholder="Type a message..."
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSubmit();
+        }}
+      />
+      
 
       <button className="submit button" onClick={handleSubmit}>
         Send
