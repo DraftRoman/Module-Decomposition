@@ -19,15 +19,28 @@ function App() {
     };
 
     socket.on("receive_message", handleReceiveMessage);
+    
+    socket.on("likes_updated", (updatedMessage) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === updatedMessage.id
+            ? updatedMessage
+            : m
+        )
+      );
+    });
 
     return () => {
       socket.off("initial_messages");
       socket.off("receive_message", handleReceiveMessage);
+      socket.off("likes_updated");
     };
   }, []);
 
   useEffect(() => {
-    divRef.current?.scrollIntoView({ behavior: "smooth" });
+    divRef.current?.scrollIntoView({
+      behavior: "smooth"
+    });
   }, [messages]);
 
   const handleSubmit = () => {
@@ -35,6 +48,10 @@ function App() {
 
     socket.emit("send_message", inputValue);
     setInputValue("");
+  };
+
+  const handleLikes = (id) => {
+    socket.emit("add_likes", id);
   };
 
   const handleClear = () => {
@@ -47,16 +64,17 @@ function App() {
 
       <div className="chat-area">
         {messages.map((msg) => (
-          <div key={msg.id} className="message">
+          <div
+            key={msg.id}
+            className="message"
+          >
             <p>{msg.message}</p>
-            <button className="like-button" onClick={() => {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === msg.id ? { ...m, likes: m.likes + 1 } : m)
-              );
 
-              console.log(`Liked message with id: ${msg.id}`);
-            }}
+            <button
+              className="like-button"
+              onClick={() =>
+                handleLikes(msg.id)
+              }
             >
               ❤️ {msg.likes}
             </button>
@@ -68,18 +86,27 @@ function App() {
         className="chat-input"
         placeholder="Type a message..."
         value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
+        onChange={(e) =>
+          setInputValue(e.target.value)
+        }
         onKeyDown={(e) => {
-          if (e.key === "Enter") handleSubmit();
+          if (e.key === "Enter") {
+            handleSubmit();
+          }
         }}
       />
-      
 
-      <button className="submit button" onClick={handleSubmit}>
+      <button
+        className="submit button"
+        onClick={handleSubmit}
+      >
         Send
       </button>
 
-      <button className="clear button" onClick={handleClear}>
+      <button
+        className="clear button"
+        onClick={handleClear}
+      >
         Clear (local only)
       </button>
     </div>

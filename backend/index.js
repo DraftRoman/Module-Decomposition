@@ -50,6 +50,21 @@ io.on("connection", (socket) => {
     io.emit("receive_message", messageObject);
   });
 
+  
+  socket.on("add_likes", (messageId) => {
+    const message = messages.find(
+      (m) => m.id === messageId
+    );
+
+    if (message) {message.likes += 1;
+
+      console.log(`Message ${message.id} now has ${message.likes} likes`
+      );
+
+      io.emit("likes_updated",message);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
