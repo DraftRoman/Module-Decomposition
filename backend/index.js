@@ -10,6 +10,13 @@ const app = express();
 
 const allowedOrigin = process.env.CLIENT_URL || "*";
 
+// Update this section to accept an array of both variations to be absolutely safe
+const allowedOrigins = [
+  allowedOrigin,
+  "http://front-with-database.178.105.39.91.sslip.io",
+  "https://front-with-database.178.105.39.91.sslip.io"
+];
+
 app.use(cors({ origin: allowedOrigin }));
 app.use(express.json());
 
@@ -21,7 +28,8 @@ const io = new Server(server, {
   cors: {
     origin: allowedOrigin,
     methods: ["GET", "POST"]
-  }
+  },
+  transports: ["websocket"]
 });
 
 const supabaseUrl = process.env.SUPABASE_URL;

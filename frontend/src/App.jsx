@@ -2,7 +2,9 @@ import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
 
-const socket = io(import.meta.env.VITE_API_URL);
+const socket = io(import.meta.env.VITE_API_URL, {
+  transports: ["websocket"]
+}); 
 
 function App() {
   const [messages, setMessages] = useState([]);
