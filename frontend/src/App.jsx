@@ -1,176 +1,114 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
+import { useEffect, useState, useRef } from "react";
+import { io } from "socket.io-client";
 import "./App.css";
 
-// Initialize Supabase Client
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+const socket = io(import.meta.env.VITE_API_URL);
 
 function App() {
-  const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const divRef = useRef(null);
 
-  const activeConversationId = "ef9ea1e8-d3f0-4c59-9942-41f1fab3f50e"; 
-
-  // Fetch initial message logs from PostgreSQL database
-  const fetchMessages = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .order("created_at", { ascending: true });
-    if (!error && data) {
+  useEffect(() => {
+    socket.on("initial_messages", (data) => {
       setMessages(data);
-    }
+    });
+
+    const handleReceiveMessage = (data) => {
+      setMessages((prev) => [...prev, data]);
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
+    
+    socket.on("likes_updated", (updatedMessage) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === updatedMessage.id
+            ? updatedMessage
+            : m
+        )
+      );
+    });
+
+    return () => {
+      socket.off("initial_messages");
+      socket.off("receive_message", handleReceiveMessage);
+      socket.off("likes_updated");
+    };
   }, []);
 
   useEffect(() => {
-    // 1. Get initial session status
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    divRef.current?.scrollIntoView({
+      behavior: "smooth"
     });
-
-    // 2. Listen for auth changes (SIGN_IN, SIGN_OUT, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    // 3. Connect real-time socket replica engine
-    const channel = supabase
-      .channel("realtime-messages")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages" },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setMessages((prev) => [...prev, payload.new]);
-          } else if (payload.eventType === "UPDATE") {
-            setMessages((prev) =>
-              prev.map((m) => (m.id === payload.new.id ? payload.new : m))
-            );
-          }
-        }
-      )
-      .subscribe();
-
-    fetchMessages();
-
-    return () => {
-      subscription.unsubscribe();
-      supabase.removeChannel(channel);
-    };
-  }, [fetchMessages]);
-
-  useEffect(() => {
-    divRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Insert a new message row into Supabase
-  const handleSubmit = async () => {
-    if (!inputValue.trim() || !session?.user) return;
+  const handleSubmit = () => {
+    if (!inputValue.trim()) return;
 
-    const { error } = await supabase.from("messages").insert([
-      {
-        text: inputValue,
-        conversation_id: activeConversationId,
-        sender_id: session.user.id, // Maps authenticated identity directly
-        status: "sent"
-      }
-    ]);
-
-    if (!error) {
-      setInputValue("");
-    } else {
-      console.error("Error sending message:", error.message);
-    }
+    socket.emit("send_message", inputValue);
+    setInputValue("");
   };
 
-  // Update a message's like count
-  const handleLikes = async (msg) => {
-    const { error } = await supabase
-      .from("messages")
-      .update({ likes: msg.likes + 1 })
-      .eq("id", msg.id);
-
-    if (error) {
-      console.error("Error updating likes:", error.message);
-    }
+  const handleLikes = (id) => {
+    socket.emit("add_likes", id);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleClear = () => {
+    setMessages([]);
   };
 
-  // IF NOT LOGGED IN: Render the pre-built Supabase Auth UI Module
-  if (!session) {
-    return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <h2>Welcome to Messenger</h2>
-          <p>Please sign in or create an account to start chatting.</p>
-          
-          <Auth
-            supabaseClient={supabase}
-            appearance={{ 
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: "#2563eb",       // Customizes the main action button colors
-                    brandAccent: "#1d4ed8",
-                  },
-                },
-              },
-            }}
-            providers={["github", "google"]} 
-            redirectTo={window.location.origin}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // IF LOGGED IN: Render the core messenger app interface
   return (
     <div className="chat-app">
-      <header className="chat-header">
-        <h1>Real Chat Application</h1>
-        <div className="user-info">
-          <span>{session.user.email}</span>
-          <button className="logout-button" onClick={handleLogout}>Logout</button>
-        </div>
-      </header>
+      <h1>Real Chat Application</h1>
 
       <div className="chat-area">
         {messages.map((msg) => (
-          <div 
-            key={msg.id} 
-            className={`message-bubble ${msg.sender_id === session.user.id ? "own-message" : "other-message"}`}
+          <div
+            key={msg.id}
+            className="message"
           >
-            <p>{msg.text}</p>
-            <button className="like-button" onClick={() => handleLikes(msg)}>
-              ❤️ {msg.likes || 0}
+            <p>{msg.message}</p>
+
+            <button
+              className="like-button"
+              onClick={() =>
+                handleLikes(msg.id)
+              }
+            >
+              ❤️ {msg.likes}
             </button>
           </div>
         ))}
         <div ref={divRef} />
       </div>
+      <input
+        className="chat-input"
+        placeholder="Type a message..."
+        value={inputValue}
+        onChange={(e) =>
+          setInputValue(e.target.value)
+        }
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            handleSubmit();
+          }
+        }}
+      />
 
-      <div className="input-area">
-        <input
-          className="chat-input"
-          placeholder="Type a message..."
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-        />
-        <button className="submit-button" onClick={handleSubmit}>Send</button>
-      </div>
+      <button
+        className="submit button"
+        onClick={handleSubmit}
+      >
+        Send
+      </button>
+
+      <button
+        className="clear button"
+        onClick={handleClear}
+      >
+        Clear (local only)
+      </button>
     </div>
   );
 }
