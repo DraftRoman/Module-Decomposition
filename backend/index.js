@@ -28,8 +28,20 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-app.get("/", (req, res) => {
-  res.json({ message: "Hello from the backend!" });
+app.get("/", async (req, res) => {
+  try {
+    const { data: messages, error } = await supabase
+      .from("messages")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+
+    res.json({ messages: messages || [] });
+  } catch (err) {
+    console.error("Error fetching messages:", err.message);
+    res.status(500).json({ error: "Unable to fetch messages" });
+  }
 });
 
 app.get("/health", (req, res) => {
