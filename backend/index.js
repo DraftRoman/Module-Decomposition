@@ -35,35 +35,6 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-socket.on("add_likes", async (messageId) => {
-  try {
-    const { data: currentMsg, error: fetchError } = await supabase
-      .from("messages")
-      .select("likes")
-      .eq("id", messageId)
-      .single();
-    
-    if (fetchError) throw fetchError;
-
-    if (currentMsg) {
-      const currentLikesCount = currentMsg.likes || 0;
-
-      const { data: updatedMessage, error: updateError } = await supabase
-        .from("messages")
-        .update({ likes: currentLikesCount + 1 })
-        .eq("id", messageId)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
-
-      io.emit("likes_updated", updatedMessage);
-    }
-  } catch (err) {
-    console.error("Error updating likes:", err.message);
-  }
-});
-
 app.get("/", async (req, res) => {
   try {
     const { data: messages, error } = await supabase
@@ -120,12 +91,19 @@ io.on("connection", async (socket) => {
 
   socket.on("add_likes", async (messageId) => {
     try {
-      const { data: currentMsg } = await supabase.from("messages").select("likes").eq("id", messageId).single();
+      const { data: currentMsg, error: fetchError } = await supabase
+        .from("messages")
+        .select("likes")
+        .eq("id", messageId)
+        .single();
       
+      if (fetchError) throw fetchError;
+
       if (currentMsg) {
+        const currentLikesCount = currentMsg.likes || 0;
         const { data: updatedMessage, error: updateError } = await supabase
           .from("messages")
-          .update({ likes: currentMsg.likes + 1 })
+          .update({ likes: currentLikesCount + 1 })
           .eq("id", messageId)
           .select()
           .single();
