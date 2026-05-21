@@ -1,3 +1,4 @@
+version: "3.8"
 services:
   backend:
     build:
@@ -5,6 +6,8 @@ services:
     environment:
       - PORT=3001
       - CLIENT_URL=${CLIENT_URL:-http://localhost:5173}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
     ports:
       - "3001:3001"
     restart: unless-stopped
@@ -15,7 +18,7 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
     ports:
-      - "5173:80"
+      - "80:80"
     depends_on:
       - backend
     restart: unless-stopped
