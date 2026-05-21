@@ -10,7 +10,7 @@ const app = express();
 
 const allowedOrigin = process.env.CLIENT_URL || "*";
 
-// Update this section to accept an array of both variations to be absolutely safe
+
 const allowedOrigins = [
   allowedOrigin,
   "http://front-with-database.178.105.39.91.sslip.io",
@@ -35,23 +35,34 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// 🔍 AUTOMATIC SUPABASE CONNECTION CHECK
-async function testSupabaseConnection() {
-  console.log("⏳ Testing connection to Supabase...");
+socket.on("add_likes", async (messageId) => {
   try {
-    // Attempting a super lightweight check
-    const { error } = await supabase.from("messages").select("*").limit(1);
-    if (error) throw error;
-    console.log("✅ SUCCESS: Successfully connected to your Supabase Database!");
+    const { data: currentMsg, error: fetchError } = await supabase
+      .from("messages")
+      .select("likes")
+      .eq("id", messageId)
+      .single();
+    
+    if (fetchError) throw fetchError;
+
+    if (currentMsg) {
+      const currentLikesCount = currentMsg.likes || 0;
+
+      const { data: updatedMessage, error: updateError } = await supabase
+        .from("messages")
+        .update({ likes: currentLikesCount + 1 })
+        .eq("id", messageId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      io.emit("likes_updated", updatedMessage);
+    }
   } catch (err) {
-    console.error("❌ CRITICAL: Could not communicate with Supabase!");
-    console.error("Error Message:", err.message);
-    console.error("Debug Details:");
-    console.error(" -> SUPABASE_URL:", supabaseUrl ? "Present" : "MISSING/EMPTY");
-    console.error(" -> SUPABASE_KEY:", supabaseKey ? "Present" : "MISSING/EMPTY");
+    console.error("Error updating likes:", err.message);
   }
-}
-testSupabaseConnection();
+});
 
 app.get("/", async (req, res) => {
   try {
@@ -106,7 +117,7 @@ io.on("connection", async (socket) => {
     }
   });
 
-  
+
   socket.on("add_likes", async (messageId) => {
     try {
       const { data: currentMsg } = await supabase.from("messages").select("likes").eq("id", messageId).single();

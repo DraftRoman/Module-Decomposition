@@ -25,9 +25,7 @@ function App() {
     socket.on("likes_updated", (updatedMessage) => {
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === updatedMessage.id
-            ? updatedMessage
-            : m
+          m.id === updatedMessage.id ? updatedMessage : m
         )
       );
     });
@@ -54,36 +52,6 @@ function App() {
   const handleLikes = (id) => {
     socket.emit("add_likes", id);
   };
-  
-
-  socket.on("add_likes", async (messageId) => {
-    try {
-      const { data: currentMsg, error: fetchError } = await supabase
-        .from("messages")
-        .select("likes")
-        .eq("id", messageId)
-        .single();
-      
-      if (fetchError) throw fetchError;
-
-      if (currentMsg) {
-        const currentLikesCount = currentMsg.likes || 0;
-
-        const { data: updatedMessage, error: updateError } = await supabase
-          .from("messages")
-          .update({ likes: currentLikesCount + 1 })
-          .eq("id", messageId)
-          .select()
-          .single();
-
-        if (updateError) throw updateError;
-
-        io.emit("likes_updated", updatedMessage);
-      }
-    } catch (err) {
-      console.error("Error updating likes:", err.message);
-    }
-  });
 
   const handleClear = () => {
     setMessages([]);
@@ -95,17 +63,12 @@ function App() {
 
       <div className="chat-area">
         {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className="message"
-          >
+          <div key={msg.id} className="message">
             <p>{msg.message}</p>
 
             <button
               className="like-button"
-              onClick={() =>
-                handleLikes(msg.id)
-              }
+              onClick={() => handleLikes(msg.id)}
             >
               ❤️ {msg.likes}
             </button>
@@ -117,9 +80,7 @@ function App() {
         className="chat-input"
         placeholder="Type a message..."
         value={inputValue}
-        onChange={(e) =>
-          setInputValue(e.target.value)
-        }
+        onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             handleSubmit();
@@ -127,17 +88,11 @@ function App() {
         }}
       />
 
-      <button
-        className="submit button"
-        onClick={handleSubmit}
-      >
+      <button className="submit button" onClick={handleSubmit}>
         Send
       </button>
 
-      <button
-        className="clear button"
-        onClick={handleClear}
-      >
+      <button className="clear button" onClick={handleClear}>
         Clear (local only)
       </button>
     </div>
