@@ -51,6 +51,10 @@ function App() {
     socket.emit("send_message", inputValue);
     setInputValue("");
   };
+  const handleLikes = (id) => {
+    socket.emit("add_likes", id);
+  };
+  
 
   socket.on("add_likes", async (messageId) => {
     try {
