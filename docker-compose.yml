@@ -7,7 +7,7 @@ services:
       - PORT=3001
       - CLIENT_URL=${CLIENT_URL:-http://localhost:5173}
       - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     ports:
       - "3001:3001"
     restart: unless-stopped
