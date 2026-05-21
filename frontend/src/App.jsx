@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
 
-const socket = io("http://back-with-database.178.105.39.91.sslip.io", {
+const socket = io("CLIENT_URL", {
   transports: ["websocket"]
 });
 
