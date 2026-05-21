@@ -4,6 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
+const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 
@@ -23,45 +24,75 @@ const io = new Server(server, {
   }
 });
 
-let messages = [];
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.get("/", (req, res) => {
-  res.json({
-    message: "Hello from the backend!",
-    history: messages
-  });
+  res.json({ message: "Hello from the backend!" });
 });
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   console.log("User connected:", socket.id);
-  socket.emit("initial_messages", messages);
 
-  socket.on("send_message", (messageText) => {
-    const messageObject = {
-      id: uuidv4(),
-      message: messageText,
-      likes: 0
-    };
-    messages.push(messageObject);
-    io.emit("receive_message", messageObject);
+  try {
+    const { data: dbMessages, error } = await supabase
+      .from("messages")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+    socket.emit("initial_messages", dbMessages || []);
+  } catch (err) {
+    console.error("Error fetching initial messages:", err.message);
+  }
+
+  
+  socket.on("send_message", async (messageText) => {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .insert([{ message: messageText }]) 
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      
+      io.emit("receive_message", data);
+    } catch (err) {
+      console.error("Error saving message:", err.message);
+    }
   });
 
   
-  socket.on("add_likes", (messageId) => {
-    const message = messages.find(
-      (m) => m.id === messageId
-    );
+  socket.on("add_likes", async (messageId) => {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .update({ likes: supabase.rpc('increment', { row_id: messageId }) })
+        .select()
+        .single();
+      
+      const { data: currentMsg } = await supabase.from("messages").select("likes").eq("id", messageId).single();
+      
+      if (currentMsg) {
+        const { data: updatedMessage, error: updateError } = await supabase
+          .from("messages")
+          .update({ likes: currentMsg.likes + 1 })
+          .eq("id", messageId)
+          .select()
+          .single();
 
-    if (message) {message.likes += 1;
-
-      console.log(`Message ${message.id} now has ${message.likes} likes`
-      );
-
-      io.emit("likes_updated",message);
+        if (updateError) throw updateError;
+        io.emit("likes_updated", updatedMessage);
+      }
+    } catch (err) {
+      console.error("Error updating likes:", err.message);
     }
   });
 
