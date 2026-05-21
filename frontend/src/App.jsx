@@ -2,9 +2,9 @@ import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
 
-const socket = io(import.meta.env.VITE_API_URL, {
+const socket = io("http://back-with-database.178.105.39.91.sslip.io", {
   transports: ["websocket"]
-}); 
+});
 
 function App() {
   const [messages, setMessages] = useState([]);
