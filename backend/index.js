@@ -17,16 +17,15 @@ const allowedOrigins = [
   "https://front-with-database.178.105.39.91.sslip.io"
 ];
 
-app.use(cors({ origin: allowedOrigin }));
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
-
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigin,
+    origin: allowedOrigins,
     methods: ["GET", "POST"]
   },
   transports: ["websocket"]
@@ -35,6 +34,24 @@ const io = new Server(server, {
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// 🔍 AUTOMATIC SUPABASE CONNECTION CHECK
+async function testSupabaseConnection() {
+  console.log("⏳ Testing connection to Supabase...");
+  try {
+    // Attempting a super lightweight check
+    const { error } = await supabase.from("messages").select("*").limit(1);
+    if (error) throw error;
+    console.log("✅ SUCCESS: Successfully connected to your Supabase Database!");
+  } catch (err) {
+    console.error("❌ CRITICAL: Could not communicate with Supabase!");
+    console.error("Error Message:", err.message);
+    console.error("Debug Details:");
+    console.error(" -> SUPABASE_URL:", supabaseUrl ? "Present" : "MISSING/EMPTY");
+    console.error(" -> SUPABASE_KEY:", supabaseKey ? "Present" : "MISSING/EMPTY");
+  }
+}
+testSupabaseConnection();
 
 app.get("/", async (req, res) => {
   try {
@@ -71,7 +88,7 @@ io.on("connection", async (socket) => {
     console.error("Error fetching initial messages:", err.message);
   }
 
-  
+
   socket.on("send_message", async (messageText) => {
     try {
       const { data, error } = await supabase
@@ -82,7 +99,7 @@ io.on("connection", async (socket) => {
 
       if (error) throw error;
 
-      
+
       io.emit("receive_message", data);
     } catch (err) {
       console.error("Error saving message:", err.message);
@@ -92,12 +109,6 @@ io.on("connection", async (socket) => {
   
   socket.on("add_likes", async (messageId) => {
     try {
-      const { data, error } = await supabase
-        .from("messages")
-        .update({ likes: supabase.rpc('increment', { row_id: messageId }) })
-        .select()
-        .single();
-      
       const { data: currentMsg } = await supabase.from("messages").select("likes").eq("id", messageId).single();
       
       if (currentMsg) {
