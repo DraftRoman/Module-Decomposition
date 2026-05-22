@@ -62,7 +62,7 @@ function App() {
     socket.emit("add_likes", id);
   };
   const handleDislikes = (id) => {
-    socket.emit("add dislikes", id);
+    socket.emit("add_dislikes", id);
   }
 
 
@@ -78,17 +78,18 @@ function App() {
         {messages.map((msg) => (
           <div key={msg.id} className="message">
             <p>{msg.message}</p>
-
-            <button
+            <div className="reaction-group">
+              <button
               className="like-button"
               onClick={() => handleLikes(msg.id)}
             >
-              ❤️ {msg.likes}
+              ❤️ {msg.likes || 0}
             </button>
             <button className="dislike-button"
               onCanPlay={() => handleDislikes(msg.id)}>
-              👎 {msg.dislikes}
+              👎 {msg.dislikes || 0}
             </button>
+              </div>
           </div>
         ))}
         <div ref={divRef} />

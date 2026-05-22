@@ -69,16 +69,32 @@ body {
   word-break: break-word;
 }
 
-.like-button {
+.reaction-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  user-select: none;
+}
+.like-button,
+.dislike-button {
   border: none;
   background: transparent;
   cursor: pointer;
   font-size: 16px;
-  transition: transform 0.2s ease;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
-.like-button:hover {
-  transform: scale(1.1);
+.like-button:hover,
+.dislike-button:hover {
+  transform: scale(1.15);
+  background-color: #f0f0f0;
+}
+
+.like-button:active,
+.dislike-button:active {
+  transform: scale(0.95);
 }
 .submit {
   background-color: #333;
@@ -95,7 +111,7 @@ body {
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
-.clear { 
+.clear {
   background-color: #999;
 }
 .clear:hover {
@@ -165,12 +181,10 @@ body {
   background-color: #2563eb;
   color: white;
   margin-left: auto;
-  /* Aligns your messages to the right side */
 }
 
 .other-message {
   background-color: #e5e7eb;
   color: #1f2937;
   margin-right: auto;
-  /* Aligns incoming messages to the left side */
 }
