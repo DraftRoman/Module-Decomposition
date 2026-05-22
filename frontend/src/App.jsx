@@ -29,11 +29,20 @@ function App() {
         )
       );
     });
+    socket.on("dislikes_updated", (updatedMessage) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === updatedMessage.id ? updatedMessage : m
+        )
+      );
+    });
+
 
     return () => {
       socket.off("initial_messages");
       socket.off("receive_message", handleReceiveMessage);
       socket.off("likes_updated");
+      socket.off("dislikes_updated");
     };
   }, []);
 
@@ -52,6 +61,10 @@ function App() {
   const handleLikes = (id) => {
     socket.emit("add_likes", id);
   };
+  const handleDislikes = (id) => {
+    socket.emit("add dislikes", id);
+  }
+
 
   const handleClear = () => {
     setMessages([]);
@@ -71,6 +84,10 @@ function App() {
               onClick={() => handleLikes(msg.id)}
             >
               ❤️ {msg.likes}
+            </button>
+            <button className="dislike-button"
+              onCanPlay={() => handleDislikes(msg.id)}>
+              👎 {msg.dislikes}
             </button>
           </div>
         ))}

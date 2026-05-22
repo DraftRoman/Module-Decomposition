@@ -116,6 +116,36 @@ io.on("connection", async (socket) => {
     }
   });
 
+  socket.on("add_dislikes", async (messageId) => {
+    try {
+      const { data: currentMsg, error: fetchError } = await supabase
+        .from("messages")
+        .select("dislikes")
+        .eq("id", messageId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+
+      if (currentMsg) {
+        const currentDislikesCount = currentMsg.dislikes || 0;
+        const { data: updatedMessage, error: updateError } = await supabase
+          .from("messages")
+          .update({ dislikes: currentDislikesCount + 1 })
+          .eq("id", messageId)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        io.emit("dislikes_updated", updatedMessage);
+      }
+    } catch (err) {
+      console.error("Error updating likes:", err.message);
+    }
+  });
+
+
+
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
