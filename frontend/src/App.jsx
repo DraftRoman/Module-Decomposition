@@ -86,7 +86,7 @@ function App() {
               ❤️ {msg.likes || 0}
             </button>
             <button className="dislike-button"
-              onCanPlay={() => handleDislikes(msg.id)}>
+              onClick={() => handleDislikes(msg.id)}>
               👎 {msg.dislikes || 0}
             </button>
               </div>

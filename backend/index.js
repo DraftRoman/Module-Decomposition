@@ -139,7 +139,7 @@ io.on("connection", async (socket) => {
         io.emit("dislikes_updated", updatedMessage);
       }
     } catch (err) {
-      console.error("Error updating likes:", err.message);
+      console.error("Error updating dislikes:", err.message);
     }
   });
 
