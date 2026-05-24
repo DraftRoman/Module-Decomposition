@@ -90,12 +90,13 @@ function App() {
   if (!session) {
     return <div>Please log in</div>;
   }
+  const displayName = session.user.user_metadata.username || session.user.email;
 
   return (
     <div className="chat-app">
       <div className="chat-header">
         <span>
-          Hello <strong>{session.user.email}</strong>
+          Hello <strong>{displayName}</strong>
         </span>
       </div>
 
