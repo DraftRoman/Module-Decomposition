@@ -180,8 +180,12 @@ function App() {
       <div className="chat-area">
         {messages.map((msg) => (
           <div key={msg.id} className="message">
-            <p className="author">Posted by: {msg.author}</p>
-            <p className="author">{msg.user_id}</p>
+            <div className="message-content">
+              <p>{msg.message}</p>
+              <p className="author">
+                {msg.author}
+              </p>
+            </div>
             <div className="reaction-group">
               <button className="like-button" onClick={() => handleLikes(msg.id)}>
                 ❤️ {msg.likes || 0}

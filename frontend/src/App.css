@@ -68,6 +68,17 @@ body {
   margin: 0;
   word-break: break-word;
 }
+.author {
+  font-size: 11px;
+  color: #b0b7c3;
+  letter-spacing: 0.3px;
+}
+
+.message-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
 .reaction-group {
   display: flex;
