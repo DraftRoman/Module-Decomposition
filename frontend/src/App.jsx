@@ -82,6 +82,9 @@ function App() {
 
     setInputValue("");
   };
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const handleDelete = (id) => socket.emit("delete", id);
   const handleLikes = (id) => socket.emit("add_likes", id);
@@ -98,6 +101,9 @@ function App() {
         <span>
           Hello <strong>{displayName}</strong>
         </span>
+        <button className="logout-button" onClick={handleLogout}>
+          Logout
+        </button>
       </div>
 
       <div className="chat-area">
@@ -116,12 +122,12 @@ function App() {
                 👎 {msg.dislikes || 0}
               </button>
 
-              {
-                (msg.user_id === session.user.id || session.user.id === adminId) && (
-                  <button onClick={() => handleDelete(msg.id)}>
-                    🪣
-                  </button>
-                )}
+              {(msg.user_id === session.user.id ||
+                session.user.id === adminId) && (
+                <button onClick={() => handleDelete(msg.id)}>
+                  🪣
+                </button>
+              )}
             </div>
           </div>
         ))}
