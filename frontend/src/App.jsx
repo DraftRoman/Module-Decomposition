@@ -116,12 +116,12 @@ function App() {
                 👎 {msg.dislikes || 0}
               </button>
 
-              {(msg.user_id === session.user.id ||
-                msg.user_id === adminId) && (
-                <button onClick={() => handleDelete(msg.id)}>
-                  🪣
-                </button>
-              )}
+              {
+                (msg.user_id === session.user.id || session.user.id === adminId) && (
+                  <button onClick={() => handleDelete(msg.id)}>
+                    🪣
+                  </button>
+                )}
             </div>
           </div>
         ))}
