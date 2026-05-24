@@ -6,7 +6,7 @@ import "./App.css";
 const socket = io("http://back-with-database.178.105.39.91.sslip.io", {
   transports: ["websocket"]
 });
-adminId = "99f421f5-0f62-46e3-8a96-fc95d823a4e8"
+const adminId = "99f421f5-0f62-46e3-8a96-fc95d823a4e8"
 function App() {
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
