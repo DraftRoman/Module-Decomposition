@@ -7,10 +7,8 @@ const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 
-const allowedOrigin = process.env.CLIENT_URL || "*";
-
 const allowedOrigins = [
-  allowedOrigin,
+  process.env.CLIENT_URL,
   "http://front-with-database.178.105.39.91.sslip.io",
   "https://front-with-database.178.105.39.91.sslip.io"
 ];
@@ -122,6 +120,8 @@ io.on("connection", async (socket) => {
   });
 });
 
-server.listen(process.env.PORT || 3001, () => {
-  console.log("Server running");
+const PORT = process.env.PORT || 3001;
+
+server.listen(PORT, () => {
+  console.log("Server running on port", PORT);
 });
