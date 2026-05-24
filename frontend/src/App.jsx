@@ -173,7 +173,7 @@ function App() {
   return (
     <div className="chat-app">
       <div className="chat-header">
-        <span>Greetings, <strong>{session.user.author}</strong></span>
+        <span>Greetings, <strong>{session.user.user_metadata.username || session.user.email}</strong></span>
         <button className="logout-button" onClick={handleLogout}>Log Out</button>
       </div>
 

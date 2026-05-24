@@ -3,16 +3,12 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-const { v4: uuidv4 } = require("uuid");
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 
-const allowedOrigin = process.env.CLIENT_URL || "*";
-
-
 const allowedOrigins = [
-  allowedOrigin,
+  process.env.CLIENT_URL,
   "http://front-with-database.178.105.39.91.sslip.io",
   "https://front-with-database.178.105.39.91.sslip.io"
 ];
@@ -20,7 +16,6 @@ const allowedOrigins = [
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
-const PORT = process.env.PORT || 3001;
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -31,22 +26,25 @@ const io = new Server(server, {
   transports: ["websocket"]
 });
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// -------------------- REST --------------------
 
 app.get("/", async (req, res) => {
   try {
-    const { data: messages, error } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
       .order("created_at", { ascending: true });
 
     if (error) throw error;
 
-    res.json({ messages: messages || [] });
+    res.json({ messages: data || [] });
   } catch (err) {
-    console.error("Error fetching messages:", err.message);
+    console.error(err.message);
     res.status(500).json({ error: "Unable to fetch messages" });
   }
 });
@@ -55,22 +53,25 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+// -------------------- SOCKET --------------------
+
 io.on("connection", async (socket) => {
   console.log("User connected:", socket.id);
 
   try {
-    const { data: dbMessages, error } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
       .order("created_at", { ascending: true });
 
     if (error) throw error;
-    socket.emit("initial_messages", dbMessages || []);
+
+    socket.emit("initial_messages", data || []);
   } catch (err) {
-    console.error("Error fetching initial messages:", err.message);
+    console.error("Initial fetch error:", err.message);
   }
 
-
+  // ---------------- SEND MESSAGE ----------------
   socket.on("send_message", async (messageData) => {
     try {
       const { message, user_id, author } = messageData;
@@ -80,7 +81,9 @@ io.on("connection", async (socket) => {
           {
             message,
             user_id,
-            author
+            author,
+            likes: 0,
+            dislikes: 0
           }
         ])
         .select()
@@ -88,85 +91,95 @@ io.on("connection", async (socket) => {
       if (error) throw error;
       io.emit("receive_message", data);
     } catch (err) {
-      console.error("Error saving message:", err.message);
+      console.error("Send message error:", err.message);
     }
   });
 
-
+  // ---------------- LIKES ----------------
   socket.on("add_likes", async (messageId) => {
     try {
-      const { data: currentMsg, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from("messages")
         .select("likes")
         .eq("id", messageId)
         .single();
-      
-      if (fetchError) throw fetchError;
 
-      if (currentMsg) {
-        const currentLikesCount = currentMsg.likes || 0;
-        const { data: updatedMessage, error: updateError } = await supabase
-          .from("messages")
-          .update({ likes: currentLikesCount + 1 })
-          .eq("id", messageId)
-          .select()
-          .single();
+      if (error) throw error;
 
-        if (updateError) throw updateError;
-        io.emit("likes_updated", updatedMessage);
-      }
+      const { data: updated, error: updateError } = await supabase
+        .from("messages")
+        .update({ likes: (data.likes || 0) + 1 })
+        .eq("id", messageId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      io.emit("likes_updated", updated);
     } catch (err) {
-      console.error("Error updating likes:", err.message);
+      console.error("Likes error:", err.message);
     }
   });
 
+  // ---------------- DISLIKES ----------------
   socket.on("add_dislikes", async (messageId) => {
     try {
-      const { data: currentMsg, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from("messages")
         .select("dislikes")
         .eq("id", messageId)
         .single();
-      
-      if (fetchError) throw fetchError;
 
-      if (currentMsg) {
-        const currentDislikesCount = currentMsg.dislikes || 0;
-        const { data: updatedMessage, error: updateError } = await supabase
-          .from("messages")
-          .update({ dislikes: currentDislikesCount + 1 })
-          .eq("id", messageId)
-          .select()
-          .single();
+      if (error) throw error;
 
-        if (updateError) throw updateError;
-        io.emit("dislikes_updated", updatedMessage);
-      }
+      const { data: updated, error: updateError } = await supabase
+        .from("messages")
+        .update({ dislikes: (data.dislikes || 0) + 1 })
+        .eq("id", messageId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      io.emit("dislikes_updated", updated);
     } catch (err) {
-      console.error("Error updating dislikes:", err.message);
+      console.error("Dislikes error:", err.message);
     }
   });
 
+  // ---------------- DELETE MESSAGE ----------------
+  
   socket.on("delete", async (messageId) => {
     try {
-      const { error } = await supabase
+      console.log("Deleting:", messageId);
+
+      const { data, error } = await supabase
         .from("messages")
         .delete()
-        .eq("id", messageId);
+        .eq("id", messageId)
+        .select();
+
       if (error) throw error;
+
+      if (!data || data.length === 0) {
+        console.log("Nothing deleted (ID not found)");
+        return;
+      }
+
       io.emit("message_deleted", messageId);
     } catch (err) {
-      console.error("Error deleting message:", err.message);
+      console.error("Delete error:", err.message);
     }
   });
-
-
-
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
 });
+
+
+
+const PORT = process.env.PORT || 3001;
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
