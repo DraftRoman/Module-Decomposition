@@ -10,10 +10,10 @@ body {
   width: 100%;
   max-width: 700px;
   margin: 50px auto;
-  padding: 20px;
   border: 1px solid #ccc;
   border-radius: 10px;
   background-color: white;
+  overflow: hidden;
 }
 
 .loading {
@@ -32,24 +32,34 @@ body {
   }
 }
 
-.chat-input {
+.chat-app input {
   display: block;
   width: 100%;
   padding: 12px;
+  margin-top: 10px;
   margin-bottom: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 16px;
+  outline: none;
 }
+
+.chat-app input:focus {
+  border-color: #2563eb;
+}
+
 .chat-area {
   width: 100%;
   height: 400px;
-  padding: 10px;
+  padding: 15px;
   margin-bottom: 15px;
   border: 1px solid #ccc;
   border-radius: 5px;
   overflow-y: auto;
   background-color: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .message {
@@ -57,7 +67,6 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 10px 15px;
-  margin-bottom: 10px;
   background-color: white;
   border-radius: 8px;
   border: 1px solid #eee;
@@ -72,61 +81,51 @@ body {
   font-size: 11px;
   color: #b0b7c3;
   letter-spacing: 0.3px;
-}
-
-.message-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  margin-top: 4px !important;
 }
 
 .reaction-group {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
   user-select: none;
 }
-.like-button,
-.dislike-button {
+
+.reaction-group button {
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 16px;
-  padding: 4px 6px;
+  font-size: 14px;
+  padding: 6px 8px;
   border-radius: 4px;
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  transition: transform 0.1s ease, background-color 0.2s ease;
 }
 
-.like-button:hover,
-.dislike-button:hover {
-  transform: scale(1.15);
+.reaction-group button:hover {
+  transform: scale(1.1);
   background-color: #f0f0f0;
 }
 
-.like-button:active,
-.dislike-button:active {
+.reaction-group button:active {
   transform: scale(0.95);
 }
-.submit {
+
+.chat-app>button {
+  display: block;
+  width: 100%;
+  padding: 12px;
   background-color: #333;
-}
-.submit:hover {
-  background-color: #555;
-}
-.button {
-  margin-right: 10px;
-  padding: 10px 20px;
-  border-radius: 5px;
   color: white;
   border: none;
+  border-radius: 5px;
+  font-size: 16px;
   cursor: pointer;
+  font-weight: bold;
   transition: background-color 0.2s ease;
 }
-.clear {
-  background-color: #999;
-}
-.clear:hover {
-  background-color: #bbb;
+
+.chat-app>button:hover {
+  background-color: #555;
 }
 
 .auth-container {
@@ -178,24 +177,4 @@ body {
   border-radius: 6px;
   cursor: pointer;
   margin-left: 1rem;
-}
-
-/* Logic checking who sent the message */
-.message-bubble {
-  max-width: 60%;
-  padding: 0.8rem;
-  margin: 0.5rem 1rem;
-  border-radius: 12px;
-}
-
-.own-message {
-  background-color: #2563eb;
-  color: white;
-  margin-left: auto;
-}
-
-.other-message {
-  background-color: #e5e7eb;
-  color: #1f2937;
-  margin-right: auto;
 }
