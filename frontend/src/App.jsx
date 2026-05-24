@@ -56,6 +56,11 @@ function App() {
         )
       );
     });
+    socket.on("message_deleted", (messageId) => {
+      setMessages((prev) =>
+        prev.filter((msg) => msg.id !== messageId)
+      );
+    });
 
 
     return () => {
@@ -63,6 +68,7 @@ function App() {
       socket.off("receive_message", handleReceiveMessage);
       socket.off("likes_updated");
       socket.off("dislikes_updated");
+      socket.off("message_deleted");
     };
   }, []);
 
@@ -95,14 +101,20 @@ function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
-
   const handleSubmit = () => {
     if (!inputValue.trim()) return;
-    socket.emit("send_message", inputValue);
+    const messageData = {
+      message: inputValue,
+      user_id: session.user.id,
+      author: session.user.user_metadata.username || session.user.email
+    };
+    socket.emit("send_message", messageData);
     setInputValue("");
   };
+
   const handleLikes = (id) =>socket.emit("add_likes", id);
   const handleDislikes = (id) =>socket.emit("add_dislikes", id);
+  const handleDelete = (id) => socket.emit("delete", id)
   const handleClear = () => setMessages([]);
 
   // --- RENDERING ROUTER ---
@@ -168,7 +180,8 @@ function App() {
       <div className="chat-area">
         {messages.map((msg) => (
           <div key={msg.id} className="message">
-            <p>{msg.message}</p>
+            <p className="author">Posted by: {msg.author}</p>
+            <p className="author">{msg.user_id}</p>
             <div className="reaction-group">
               <button className="like-button" onClick={() => handleLikes(msg.id)}>
                 ❤️ {msg.likes || 0}
@@ -176,6 +189,13 @@ function App() {
               <button className="dislike-button" onClick={() => handleDislikes(msg.id)}>
                 👎 {msg.dislikes || 0}
               </button>
+              {msg.user_id === session.user.id &&
+                (
+                <button className="dislike-button"
+                  onClick={() => handleDelete(msg.id)}>
+                  🪣
+                  </button>
+                )}
             </div>
           </div>
         ))}

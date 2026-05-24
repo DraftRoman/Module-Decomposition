@@ -71,17 +71,21 @@ io.on("connection", async (socket) => {
   }
 
 
-  socket.on("send_message", async (messageText) => {
+  socket.on("send_message", async (messageData) => {
     try {
+      const { message, user_id, author } = messageData;
       const { data, error } = await supabase
         .from("messages")
-        .insert([{ message: messageText }]) 
+        .insert([
+          {
+            message,
+            user_id,
+            author
+          }
+        ])
         .select()
         .single();
-
       if (error) throw error;
-
-
       io.emit("receive_message", data);
     } catch (err) {
       console.error("Error saving message:", err.message);
@@ -140,6 +144,19 @@ io.on("connection", async (socket) => {
       }
     } catch (err) {
       console.error("Error updating dislikes:", err.message);
+    }
+  });
+
+  socket.on("delete", async (messageId) => {
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .delete()
+        .eq("id", messageId);
+      if (error) throw error;
+      io.emit("message_deleted", messageId);
+    } catch (err) {
+      console.error("Error deleting message:", err.message);
     }
   });
 
