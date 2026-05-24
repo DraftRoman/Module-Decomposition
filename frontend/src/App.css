@@ -47,6 +47,20 @@ body {
 .chat-app input:focus {
   border-color: #2563eb;
 }
+.chat-input {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  outline: none;
+}
+
+.chat-input:focus {
+  border-color: #2563eb;
+}
 
 .chat-area {
   width: 100%;
@@ -159,6 +173,34 @@ body {
   margin-bottom: 2rem;
 }
 
+.button {
+  display: inline-block;
+  padding: 12px 20px;
+  border-radius: 5px;
+  color: white;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.submit {
+  background-color: #333;
+}
+
+.submit:hover {
+  background-color: #555;
+}
+
+.clear {
+  background-color: #999;
+}
+
+.clear:hover {
+  background-color: #bbb;
+}
+
 /* Chat Layout Enhancements */
 .chat-header {
   display: flex;
@@ -177,4 +219,10 @@ body {
   border-radius: 6px;
   cursor: pointer;
   margin-left: 1rem;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.logout-button:hover {
+  background: #dc2626;
 }
