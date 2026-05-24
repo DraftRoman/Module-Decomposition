@@ -6,7 +6,7 @@ import "./App.css";
 const socket = io("http://back-with-database.178.105.39.91.sslip.io", {
   transports: ["websocket"]
 });
-
+adminId = "99f421f5-0f62-46e3-8a96-fc95d823a4e8"
 function App() {
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -173,7 +173,7 @@ function App() {
   return (
     <div className="chat-app">
       <div className="chat-header">
-        <span>Logged in as: <strong>{session.user.email}</strong></span>
+        <span>Greetings, <strong>{session.user.author}</strong></span>
         <button className="logout-button" onClick={handleLogout}>Log Out</button>
       </div>
 
@@ -193,7 +193,7 @@ function App() {
               <button className="dislike-button" onClick={() => handleDislikes(msg.id)}>
                 👎 {msg.dislikes || 0}
               </button>
-              {msg.user_id === session.user.id &&
+              {(msg.user_id === session.user.id || msg.user_id === adminId) &&
                 (
                 <button className="dislike-button"
                   onClick={() => handleDelete(msg.id)}>
