@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import { supabase } from "./supabaseClient";
 import "./App.css";
 
-const socket = io("https://back-with-database.178.105.39.91.sslip.io", {
+const socket = io("http://back-with-database.178.105.39.91.sslip.io", {
   transports: ["polling", "websocket"] 
 });
 
