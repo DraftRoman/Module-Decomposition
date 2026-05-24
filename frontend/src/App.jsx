@@ -4,7 +4,7 @@ import { supabase } from "./supabaseClient";
 import "./App.css";
 
 const socket = io("https://back-with-database.178.105.39.91.sslip.io", {
-  transports: ["websocket", "polling"]
+  transports: ["polling", "websocket"] 
 });
 
 const adminId = "99f421f5-0f62-46e3-8a96-fc95d823a4e8";
