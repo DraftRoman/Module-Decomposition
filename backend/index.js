@@ -3,16 +3,12 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-const { v4: uuidv4 } = require("uuid");
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 
-const allowedOrigin = process.env.CLIENT_URL || "*";
-
-
 const allowedOrigins = [
-  allowedOrigin,
+  process.env.CLIENT_URL,
   "http://front-with-database.178.105.39.91.sslip.io",
   "https://front-with-database.178.105.39.91.sslip.io"
 ];
@@ -20,99 +16,102 @@ const allowedOrigins = [
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
-const PORT = process.env.PORT || 3001;
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: "*",
     methods: ["GET", "POST"]
   },
-  transports: ["websocket"]
+  transports: ["polling","websocket"]
 });
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
 
 app.get("/", async (req, res) => {
-  try {
-    const { data: messages, error } = await supabase
-      .from("messages")
-      .select("*")
-      .order("created_at", { ascending: true });
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*")
+    .order("created_at", { ascending: true });
 
-    if (error) throw error;
+  if (error) return res.status(500).json(error);
 
-    res.json({ messages: messages || [] });
-  } catch (err) {
-    console.error("Error fetching messages:", err.message);
-    res.status(500).json({ error: "Unable to fetch messages" });
-  }
+  res.json({ messages: data });
 });
 
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
+  res.json({ status: "ok" });
 });
 
 io.on("connection", async (socket) => {
   console.log("User connected:", socket.id);
 
-  try {
-    const { data: dbMessages, error } = await supabase
+  const { data } = await supabase
+    .from("messages")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  socket.emit("initial_messages", data || []);
+
+  socket.on("send_message", async (messageData) => {
+    const { message, user_id, author } = messageData;
+
+    const { data, error } = await supabase
       .from("messages")
-      .select("*")
-      .order("created_at", { ascending: true });
+      .insert([{ message, user_id, author }])
+      .select()
+      .single();
 
-    if (error) throw error;
-    socket.emit("initial_messages", dbMessages || []);
-  } catch (err) {
-    console.error("Error fetching initial messages:", err.message);
-  }
-
-
-  socket.on("send_message", async (messageText) => {
-    try {
-      const { data, error } = await supabase
-        .from("messages")
-        .insert([{ message: messageText }]) 
-        .select()
-        .single();
-
-      if (error) throw error;
-
-
-      io.emit("receive_message", data);
-    } catch (err) {
-      console.error("Error saving message:", err.message);
-    }
+    if (!error) io.emit("receive_message", data);
   });
 
+  socket.on("add_likes", async (id) => {
+    const { data } = await supabase
+      .from("messages")
+      .select("likes")
+      .eq("id", id)
+      .single();
 
-  socket.on("add_likes", async (messageId) => {
-    try {
-      const { data: currentMsg, error: fetchError } = await supabase
-        .from("messages")
-        .select("likes")
-        .eq("id", messageId)
-        .single();
-      
-      if (fetchError) throw fetchError;
+    const { data: updated } = await supabase
+      .from("messages")
+      .update({ likes: (data.likes || 0) + 1 })
+      .eq("id", id)
+      .select()
+      .single();
 
-      if (currentMsg) {
-        const currentLikesCount = currentMsg.likes || 0;
-        const { data: updatedMessage, error: updateError } = await supabase
-          .from("messages")
-          .update({ likes: currentLikesCount + 1 })
-          .eq("id", messageId)
-          .select()
-          .single();
+    io.emit("likes_updated", updated);
+  });
 
-        if (updateError) throw updateError;
-        io.emit("likes_updated", updatedMessage);
-      }
-    } catch (err) {
-      console.error("Error updating likes:", err.message);
+  socket.on("add_dislikes", async (id) => {
+    const { data } = await supabase
+      .from("messages")
+      .select("dislikes")
+      .eq("id", id)
+      .single();
+
+    const { data: updated } = await supabase
+      .from("messages")
+      .update({ dislikes: (data.dislikes || 0) + 1 })
+      .eq("id", id)
+      .select()
+      .single();
+
+    io.emit("dislikes_updated", updated);
+  });
+
+  socket.on("delete", async (id) => {
+    const { error } = await supabase
+      .from("messages")
+      .delete()
+      .eq("id", id);
+
+    if (!error) {
+      io.emit("message_deleted", id);
     }
   });
 
@@ -121,6 +120,8 @@ io.on("connection", async (socket) => {
   });
 });
 
+const PORT = process.env.PORT || 3001;
+
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port", PORT);
 });
